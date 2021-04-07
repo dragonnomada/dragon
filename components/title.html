@@ -22,27 +22,33 @@
     <div data-rel="list" =""></div>
   </div>
 
-  <script>
-    on(":mounted", () => {
-      console.log(":mounted");
-      select("[data-rel='list']").innerHTML = `
-        ${[1, 2, 3].map(() => `<div @button>xx</div>`).join("\n")}
-      `;
-    });
+  <script ref>
+    const h1 = bind("h1");
+    const h2 = bind("h2");
+    const list = bind("list");
   </script>
 
-  <script>
+  <script hook>
     const [counter, setCounter] = useContext("@counter");
 
     const [count, setCount] = useState(0);
     const [count2, setCount2] = useState(100);
+  </script>
 
-    select("h1").textContent = `Count: ${count} - ${count2} (${counter})`;
-    select("h2").textContent = `Count: ${count} - ${count2}`;
+  <script render>
+    h1.textContent = `Count: ${count} - ${count2} (${counter})`;
+    h2.textContent = `Count: ${count} - ${count2}`;
+  </script>
 
-    on("add", () => {
-      setCount(count + 1);
-      setCount2(count2 - 1);
-    });
+  <script mounted>
+    console.log(":mounted");
+    list.innerHTML = `
+      ${[1, 2, 3].map(() => `<div @button>xx</div>`).join("\n")}
+    `;
+  </script>
+
+  <script :add>
+    setCount(count + 1);
+    setCount2(count2 - 1);
   </script>
 </template>

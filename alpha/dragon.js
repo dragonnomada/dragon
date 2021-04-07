@@ -6,16 +6,327 @@
  * Nano-Librería de construcción de componentes html/css/javascript
  */
 
+function dragon(root = document) {
+  for (let node of [...root.querySelectorAll("*")]) {
+    if (node.tagName === "TEMPLATE") continue;
+    if (node.dragon) continue;
+    dragon.inspectAttributes(node);
+  }
+}
+
+dragon.initialize = (node) => {
+  node.dragon = {
+    id: node.id || `node-${Math.random().toString(32).slice(2)}`,
+    mounted: null,
+    scripts: {
+      binds: [],
+      hooks: [],
+      render: "",
+      when: {
+        mounted: ""
+      },
+      on: {}
+    },
+    listeners: {},
+    subscribers: {},
+    fallback: node.innerHTML,
+    clear: () => {
+      // const range = document.createRange();
+      // range.selectNodeContents(node);
+      // range.deleteContents();
+      // node.innerHTML = "";
+      while (node.firstChild) {
+        node.removeChild(node.firstChild);
+      }
+    },
+    loadFallback: () => {
+      node.innerHTML = node.dragon.fallback;
+    },
+    on: (channel, handler, ...params) => {
+      if (/^:/.test(channel)) {
+        const channelName = channel.slice(1);
+        node.dragon.subscribers[channelName] = handler;
+        return;
+      }
+      if (/^#/.test(channel)) {
+        const channelName = channel.slice(1);
+        node.dragon[channelName] = handler;
+        return;
+      }
+      console.log("on", channel, params);
+    },
+    bind: (...params) => {
+      return new Proxy(
+        {},
+        {
+          get(target, name) {
+            let current = null;
+            if (node.dragon.mounted) {
+              current = node.querySelector(...params);
+            } else {
+              current = node.dragon.virtualNode.querySelector(...params);
+            }
+            return current[name];
+          },
+          set(target, name, value) {
+            let current = null;
+            if (node.dragon.mounted) {
+              current = node.querySelector(...params);
+            } else {
+              current = node.dragon.virtualNode.querySelector(...params);
+            }
+            current[name] = value;
+          }
+        }
+      );
+    },
+    select: (...params) => {
+      if (node.dragon.mounted) return node.querySelector(...params);
+      return node.dragon.virtualNode.querySelector(...params);
+    },
+    selectAll: (...params) => {
+      if (node.dragon.mounted) return node.querySelectorAll(...params);
+      return node.dragon.virtualNode.querySelectorAll(...params);
+    },
+    useContext: () => {
+      console.log("useContext");
+      return [null, () => {}];
+    },
+    useState: () => {
+      console.log("useState");
+      return [null, () => {}];
+    }
+  };
+
+  node.id = node.dragon.id;
+
+  dragon.context.nodes[node.id] = node;
+};
+
+dragon.inspectAttributes = (node) => {
+  for (let attributeName of node.getAttributeNames()) {
+    if (/^@/.test(attributeName)) {
+      const options = node.getAttribute(attributeName);
+      const componentName = attributeName.slice(1);
+
+      dragon.initialize(node);
+
+      dragon.createFromTemplate(node, componentName, options);
+
+      dragon.mount(node);
+    }
+  }
+};
+
+dragon.createFromTemplate = (node, componentName, options) => {
+  const template = document.querySelector(`template[${componentName}]`);
+
+  console.log("@dragon: Template loaded", template);
+
+  const virtualNode = document.importNode(template.content, true);
+
+  dragon.loadScripts(node, virtualNode);
+
+  const mountChildren = () => {
+    for (let element of [...virtualNode.querySelectorAll(":scope > *")]) {
+      if (element.tagName === "SCRIPT") continue;
+      if (element.tagName === "STYLE") {
+        element.textContent = element.textContent.replace(
+          /:scope/g,
+          `#${node.id}`
+        );
+      }
+      node.appendChild(element);
+    }
+  };
+
+  const unmountChildren = () => {
+    for (let element of [...node.querySelectorAll(":scope > *")]) {
+      virtualNode.appendChild(element);
+    }
+  };
+
+  node.dragon.template = template;
+  node.dragon.virtualNode = virtualNode;
+  node.dragon.mountChildren = mountChildren;
+  node.dragon.unmountChildren = unmountChildren;
+};
+
+dragon.loadScripts = (node, virtualNode) => {
+  for (let script of [...virtualNode.querySelectorAll("script")]) {
+    const code = script.textContent.trim();
+
+    if (script.hasAttribute("ref")) {
+      node.dragon.scripts.binds.push(code);
+      continue;
+    }
+    if (script.hasAttribute("hook")) {
+      node.dragon.scripts.hooks.push(code);
+      continue;
+    }
+    if (script.hasAttribute("render")) {
+      node.dragon.scripts.render = code;
+      continue;
+    }
+    if (script.hasAttribute("mounted")) {
+      node.dragon.scripts.when.mounted = code;
+      continue;
+    }
+    for (let attributeName of script.getAttributeNames()) {
+      if (/^:/.test(attributeName)) {
+        const eventName = attributeName.slice(1);
+        node.dragon.scripts.on[eventName] = code;
+        continue;
+      }
+      if (/^@/.test(attributeName)) {
+        const eventName = attributeName.slice(1);
+        node.dragon.scripts.when[eventName] = code;
+        continue;
+      }
+    }
+  }
+
+  const makeScript = () => {
+    return `
+      (() => {
+        const node = dragon.context.nodes["${node.id}"];
+
+        (async ({ ${Object.keys(node.dragon)}, ...lib }) => {
+          // binds
+          ${node.dragon.scripts.binds.join("\n")}
+
+          // hooks
+          ${node.dragon.scripts.hooks.join("\n")}
+
+          // render
+          on("#render", async () => {
+            ${node.dragon.scripts.render}
+          });
+
+          // when
+          ${Object.entries(node.dragon.scripts.when)
+            .map(
+              ([
+                eventName,
+                code
+              ]) => `on("@${eventName}", async (event, ...params) => {
+                ${code}
+              });`
+            )
+            .join("\n")}
+          
+          // on
+          ${Object.entries(node.dragon.scripts.on)
+            .map(
+              ([
+                eventName,
+                code
+              ]) => `on(":${eventName}", async (event, ...params) => {
+                ${code}
+              });`
+            )
+            .join("\n")}
+
+        })(node.dragon);
+      })();
+    `;
+  };
+
+  node.dragon.makeScript = makeScript;
+  node.dragon.script = makeScript();
+
+  console.log(node.dragon.script);
+};
+
+dragon.registerEvents = (node) => {
+  for (let element of [...node.querySelectorAll("*")]) {
+    for (let elementAttributeName of element.getAttributeNames()) {
+      if (/^:/.test(elementAttributeName)) {
+        const channel = element.getAttribute(elementAttributeName);
+        const eventName = elementAttributeName.slice(1);
+
+        dragon.listenEvent(node, element, eventName, channel);
+      }
+    }
+  }
+};
+
+dragon.listenEvent = (node, element, eventName, channel) => {
+  const handler = (...params) => {
+    if (!node.dragon.mounted) return;
+    console.log("event", node.id, eventName, channel);
+
+    const subscriber = node.dragon.subscribers[channel];
+
+    if (typeof subscriber === "function") {
+      subscriber(...params);
+    }
+  };
+  // if (node.dragon.listeners[channel]) {
+  //   const { element, eventName, handler } = node.dragon.listeners[channel];
+  //   element.removeEventListener(eventName, handler);
+  //   console.log("remove listener", node.id, eventName, channel);
+  // }
+  // node.dragon.listeners[channel] = {
+  //   eventName,
+  //   element,
+  //   handler
+  // };
+  node.dragon.listeners[channel] = node.dragon.listeners[channel] || [];
+  node.dragon.listeners[channel].push({
+    eventName,
+    element,
+    handler
+  });
+  element.addEventListener(eventName, handler);
+  console.log("add listener", node.id, eventName, channel);
+};
+
+dragon.execScript = (node) => {
+  const script = document.createElement("script");
+  script.textContent = node.dragon.script;
+  if (node.dragon.instancedScript) {
+    document.body.removeChild(node.dragon.instancedScript);
+  }
+  node.dragon.instancedScript = script;
+  document.body.appendChild(script);
+};
+
+dragon.mount = (node) => {
+  node.dragon.clear();
+
+  node.dragon.mountChildren();
+
+  dragon.registerEvents(node);
+
+  dragon.execScript(node);
+
+  node.dragon.mounted = true;
+
+  if (typeof node.dragon.render === "function") {
+    node.dragon.render();
+  }
+
+  if (node.dragon.subscribers[":mounted"]) {
+    node.dragon.subscribers[":mounted"]();
+    dragon(node);
+  }
+};
+
+dragon.context = {
+  shared: {},
+  nodes: {}
+};
+
 const context = {
   shared: {}
 };
 
-function dragon(root) {
+function dragon_dep(root) {
   for (let node of [...root.querySelectorAll("*")]) {
     if (node.tagName === "TEMPLATE") continue;
     if (node.dragon) continue;
-    node.dragon = true;
-    node.id = node.id || `node-${Math.random().toString(32).slice(2)}`;
+
     for (let attributeName of node.getAttributeNames()) {
       if (/^@/.test(attributeName)) {
         // const options = node.getAttribute(attributeName);
@@ -46,7 +357,7 @@ function dragon(root) {
                 `#${node.id}`
               );
             }
-            node.append(element);
+            node.appendChild(element);
           }
           for (let element of [...node.querySelectorAll("*")]) {
             if (element.tagName === "STYLE") {
@@ -113,7 +424,7 @@ function dragon(root) {
           node.mounted = false;
 
           for (let element of [...node.querySelectorAll(":scope > *")]) {
-            virtualNode.append(element);
+            virtualNode.appendChild(element);
           }
 
           node.innerHTML = node.fallback;
@@ -225,7 +536,7 @@ function dragon(root) {
                   await (async ({ ${Object.keys(context[node.id]).join(
                     ","
                   )} }) => {
-                    ${script.textContent.replace(
+                    ${code.replace(
                       /useState/g,
                       () => `useState[${stateCount++}]`
                     )}
@@ -234,7 +545,7 @@ function dragon(root) {
               );
             `;
           context[node.id].scripts.push(newScript);
-          document.body.append(newScript);
+          document.body.appendChild(newScript);
         }
 
         render();
@@ -255,9 +566,9 @@ function dragon(root) {
     div.innerHTML = html;
 
     for (let template of [...div.querySelectorAll("template")]) {
-      document.body.append(template);
+      document.body.appendChild(template);
     }
   }
 
-  dragon(document);
+  dragon();
 })();
