@@ -31,7 +31,7 @@ const context = {};
         // const options = node.getAttribute(attributeName);
         const componentName = attributeName.slice(1);
         const template = document.querySelector(`template[${componentName}]`);
-        let virtualNode = document.importNode(template.content, true);
+        const virtualNode = document.importNode(template.content, true);
         node.fallback = node.innerHTML;
         const mount = (clear) => {
           if (node.mounted) {
