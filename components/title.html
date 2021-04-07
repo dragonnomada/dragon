@@ -1,0 +1,38 @@
+<template title>
+  <style>
+    :scope > h1 {
+      color: red;
+    }
+  </style>
+
+  <h1 :click="add">Hola mundo</h1>
+
+  <script>
+    // const [count, setCount] = useState(0);
+
+    // select("h1").textContent = `Count: ${count}`;
+
+    const id = setInterval(() => {
+      console.log("count :D");
+    }, 1000);
+
+    on("add", () => {
+      console.log("add", visible);
+      if (visible) {
+        hide();
+        setTimeout(() => {
+          unmount();
+        }, 5000);
+      }
+      //   setCount(count + 1);
+    });
+
+    mount(() => {
+      clearInterval(id);
+    });
+
+    // setTimeout(() => {
+    //   unmount();
+    // }, 10000);
+  </script>
+</template>
