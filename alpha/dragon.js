@@ -75,8 +75,17 @@ function dragon(root) {
               }
             }
           }
+
           dragon(node);
+
           node.mounted = true;
+
+          console.log(node.subscribers);
+          if (node.subscribers[":mounted"]) {
+            node.subscribers[":mounted"]();
+            dragon(node);
+          }
+
           console.log("mounted", node.id);
         };
         const unmount = (clear) => {
@@ -139,6 +148,8 @@ function dragon(root) {
           for (let proc of context[node.id].process) {
             await proc();
           }
+
+          dragon(node);
         };
         const useState = (id) => (defaultValue) => {
           if (Object.keys(node.state).indexOf(id) < 0) {
@@ -153,6 +164,8 @@ function dragon(root) {
         };
 
         node.state = {};
+        node.subscribers = {};
+        // node.listeners = {};
 
         context[node.id] = {
           mount,

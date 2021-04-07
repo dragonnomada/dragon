@@ -14,15 +14,19 @@
     <link rel="import" href="components/title.html" />
     <link rel="import" href="components/button.html" />
 
-    <h1>My App</h1>
-
-    <div class="flex justify-between py-4 px-16">
-      <div class="flex" @title>
-        <span>loading...</span>
+    <div class="p-4">
+      <div class="border-b pb-8">
+        <h1 class="text-4xl">My App</h1>
       </div>
 
-      <div class="flex" @title>
-        <span>cargando...</span>
+      <div class="flex justify-between py-8 px-16">
+        <div class="flex" @title>
+          <span>loading...</span>
+        </div>
+
+        <div class="flex" @title>
+          <span>cargando...</span>
+        </div>
       </div>
     </div>
 
