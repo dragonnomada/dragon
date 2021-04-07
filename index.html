@@ -5,14 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Static Template</title>
+    <link
+      href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <link rel="import" href="components/title.html" />
+    <link rel="import" href="components/button.html" />
 
     <h1>My App</h1>
 
-    <div @title>
-      <span>loading...</span>
+    <div class="flex justify-between py-4 px-16">
+      <div class="flex" @title>
+        <span>loading...</span>
+      </div>
+
+      <div class="flex" @title>
+        <span>cargando...</span>
+      </div>
     </div>
 
     <script src="alpha/dragon.js"></script>

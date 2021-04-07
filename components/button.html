@@ -1,0 +1,16 @@
+<template button>
+  <button
+    class="rounded bg-blue-500 hover:bg-blue-700 text-white py-1 px-2"
+    :click="add"
+  >
+    button
+  </button>
+
+  <script>
+    on("add", () => {
+      console.log("Hola mundo");
+    });
+
+    mount();
+  </script>
+</template>

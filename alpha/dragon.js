@@ -8,23 +8,11 @@
 
 const context = {};
 
-(async () => {
-  for (let link of [...document.querySelectorAll(`link[rel="import"]`)]) {
-    const response = await fetch(link.href);
-
-    const html = await response.text();
-
-    const div = document.createElement("div");
-
-    div.innerHTML = html;
-
-    for (let template of [...div.querySelectorAll("template")]) {
-      document.body.append(template);
-    }
-  }
-
-  for (let node of [...document.querySelectorAll("*")]) {
+function dragon(root) {
+  for (let node of [...root.querySelectorAll("*")]) {
     if (node.tagName === "TEMPLATE") continue;
+    if (node.dragon) continue;
+    node.dragon = true;
     node.id = node.id || `node-${Math.random().toString(32).slice(2)}`;
     for (let attributeName of node.getAttributeNames()) {
       if (/^@/.test(attributeName)) {
@@ -49,7 +37,16 @@ const context = {};
           while (node.firstChild) {
             node.removeChild(node.firstChild);
           }
-          for (let element of [...virtualNode.querySelectorAll("*")]) {
+          for (let element of [...virtualNode.querySelectorAll(":scope > *")]) {
+            if (element.tagName === "STYLE") {
+              element.textContent = element.textContent.replace(
+                /:scope/g,
+                `#${node.id}`
+              );
+            }
+            node.append(element);
+          }
+          for (let element of [...node.querySelectorAll("*")]) {
             if (element.tagName === "STYLE") {
               element.textContent = element.textContent.replace(
                 /:scope/g,
@@ -77,8 +74,8 @@ const context = {};
                 console.log("listen", name, eventName);
               }
             }
-            node.append(element);
           }
+          dragon(node);
           node.mounted = true;
           console.log("mounted", node.id);
         };
@@ -104,7 +101,7 @@ const context = {};
 
           node.mounted = false;
 
-          for (let element of [...node.querySelectorAll("*")]) {
+          for (let element of [...node.querySelectorAll(":scope > *")]) {
             virtualNode.append(element);
           }
 
@@ -206,4 +203,22 @@ const context = {};
       }
     }
   }
+}
+
+(async () => {
+  for (let link of [...document.querySelectorAll(`link[rel="import"]`)]) {
+    const response = await fetch(link.href);
+
+    const html = await response.text();
+
+    const div = document.createElement("div");
+
+    div.innerHTML = html;
+
+    for (let template of [...div.querySelectorAll("template")]) {
+      document.body.append(template);
+    }
+  }
+
+  dragon(document);
 })();
