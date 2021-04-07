@@ -150,6 +150,8 @@ function dragon(root) {
           }
 
           dragon(node);
+
+          mount();
         };
         const useState = (id) => (defaultValue) => {
           if (Object.keys(node.state).indexOf(id) < 0) {
