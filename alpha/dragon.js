@@ -28,24 +28,27 @@ const context = {};
     node.id = node.id || `node-${Math.random().toString(32).slice(2)}`;
     for (let attributeName of node.getAttributeNames()) {
       if (/^@/.test(attributeName)) {
-        const attribute = node.getAttribute(attributeName);
-        const options = attribute.value;
+        // const options = node.getAttribute(attributeName);
         const componentName = attributeName.slice(1);
         const template = document.querySelector(`template[${componentName}]`);
-        const virtualNode = document.importNode(template.content, true);
+        let virtualNode = document.importNode(template.content, true);
         node.fallback = node.innerHTML;
-        let mounted = false;
         const mount = (clear) => {
-          node.clear = clear || (() => {});
+          if (node.mounted) {
+            // console.log("already mounted", node.mounted);
+            return;
+          }
+
+          node.clear = clear;
 
           console.log("mount", node.id);
-          const range = document.createRange();
-          range.selectNodeContents(node);
-          range.deleteContents();
+          // const range = document.createRange();
+          // range.selectNodeContents(node);
+          // range.deleteContents();
           // node.innerHTML = "";
-          // while (node.firstChild) {
-          //   node.removeChild(node.firstChild);
-          // }
+          while (node.firstChild) {
+            node.removeChild(node.firstChild);
+          }
           for (let element of [...virtualNode.querySelectorAll("*")]) {
             if (element.tagName === "STYLE") {
               element.textContent = element.textContent.replace(
@@ -59,9 +62,10 @@ const context = {};
                 const name = elementAttributeName.slice(1);
                 node.listeners = node.listeners || {};
                 const handler = (...params) => {
+                  if (!node.mounted) return;
                   console.log("event", name, eventName);
-                  for (let subscriber of (node.subscribers || {})[eventName] ||
-                    []) {
+                  if (node.subscribers && node.subscribers[eventName]) {
+                    const subscriber = node.subscribers[eventName];
                     subscriber(...params);
                   }
                 };
@@ -75,7 +79,7 @@ const context = {};
             }
             node.append(element);
           }
-          mounted = true;
+          node.mounted = true;
           console.log("mounted", node.id);
         };
         const unmount = (clear) => {
@@ -83,18 +87,26 @@ const context = {};
             const { element, handler } = node.listeners[eventName];
             element.removeEventListener(eventName, handler);
           }
+          node.listeners = {};
 
           for (let script of context[node.id].scripts) {
             document.body.removeChild(script);
           }
+          context[node.id].scripts = [];
 
-          node.clear();
+          if (typeof node.clear === "function") {
+            node.clear();
+          }
 
           if (typeof clear === "function") {
             clear();
           }
 
-          mounted = false;
+          node.mounted = false;
+
+          for (let element of [...node.querySelectorAll("*")]) {
+            virtualNode.append(element);
+          }
 
           node.innerHTML = node.fallback;
 
@@ -110,10 +122,40 @@ const context = {};
         };
         const on = (eventName, handler) => {
           node.subscribers = node.subscribers || {};
-          node.subscribers[eventName] = node.subscribers[eventName] || [];
-          node.subscribers[eventName].push(handler);
+          node.subscribers[eventName] = handler;
           console.log("subscribe", eventName);
         };
+        const select = (...params) => {
+          if (node.mounted) return node.querySelector(...params);
+          return virtualNode.querySelector(...params);
+        };
+        const selectAll = (...params) => {
+          if (node.mounted) return node.querySelectorAll(...params);
+          return virtualNode.querySelectorAll(...params);
+        };
+        const render = async () => {
+          // if (node.mounted) {
+          //   unmount();
+          // }
+          // virtualNode = document.importNode(template.content, true);
+          // console.log(virtualNode.textContent);
+          for (let proc of context[node.id].process) {
+            await proc();
+          }
+        };
+        const useState = (id) => (defaultValue) => {
+          if (Object.keys(node.state).indexOf(id) < 0) {
+            node.state[id] = defaultValue;
+          }
+          const setValue = (newValue) => {
+            node.state[id] = newValue;
+            console.log("update state", node.state[id]);
+            render();
+          };
+          return [node.state[id], setValue];
+        };
+
+        node.state = {};
 
         context[node.id] = {
           mount,
@@ -121,21 +163,45 @@ const context = {};
           show,
           hide,
           visible: !node.hidden,
-          mounted,
+          mounted: node.mounted,
           on,
-          scripts: []
+          select,
+          selectAll,
+          useState: new Proxy(
+            {},
+            {
+              get(target, id) {
+                return useState(id);
+              }
+            }
+          ),
+          scripts: [],
+          process: []
         };
 
+        let stateCount = 0;
         for (let script of [...virtualNode.querySelectorAll("script")]) {
+          console.log(script);
           const newScript = document.createElement("script");
           newScript.textContent = `
-            (async ({ ${Object.keys(context[node.id]).join(",")} }) => {
-              ${script.textContent}
-            })(context["${node.id}"]);
-          `;
+              context["${node.id}"].process.push(
+                async () => {
+                  await (async ({ ${Object.keys(context[node.id]).join(
+                    ","
+                  )} }) => {
+                    ${script.textContent.replace(
+                      /useState/g,
+                      () => `useState[${stateCount++}]`
+                    )}
+                  })(context["${node.id}"]);
+                }
+              );
+            `;
           context[node.id].scripts.push(newScript);
           document.body.append(newScript);
         }
+
+        render();
         console.log(componentName, template);
       }
     }
