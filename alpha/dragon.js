@@ -6,7 +6,9 @@
  * Nano-Librería de construcción de componentes html/css/javascript
  */
 
-const context = {};
+const context = {
+  shared: {}
+};
 
 function dragon(root) {
   for (let node of [...root.querySelectorAll("*")]) {
@@ -159,15 +161,36 @@ function dragon(root) {
           }
           const setValue = (newValue) => {
             node.state[id] = newValue;
-            console.log("update state", node.state[id]);
+            console.log("update state", node.id, id, node.state[id]);
             render();
           };
           return [node.state[id], setValue];
+        };
+        const useContext = (namespace) => {
+          context.shared[namespace] = context.shared[namespace] || {
+            value: null,
+            nodes: {}
+          };
+          context.shared[namespace].nodes[node.id] = node;
+          const setValue = (newValue) => {
+            context.shared[namespace].value = newValue;
+            console.log(
+              "update context",
+              namespace,
+              node.id,
+              context.shared[namespace].value
+            );
+            for (let _node of Object.values(context.shared[namespace].nodes)) {
+              _node.render();
+            }
+          };
+          return [context.shared[namespace].value, setValue];
         };
 
         node.state = {};
         node.subscribers = {};
         // node.listeners = {};
+        node.render = render;
 
         context[node.id] = {
           mount,
@@ -187,6 +210,7 @@ function dragon(root) {
               }
             }
           ),
+          useContext,
           scripts: [],
           process: []
         };

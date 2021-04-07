@@ -7,8 +7,13 @@
   </button>
 
   <script>
+    const [counter, setCounter] = useContext("@counter");
+
+    select("button").textContent = `button (${counter || 0})`;
+
     on("add", () => {
       console.log("Hola mundo");
+      setCounter(counter + 1);
     });
 
     mount();
