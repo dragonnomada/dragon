@@ -95,16 +95,38 @@ dragon.initialize = (node) => {
       if (node.dragon.mounted) return node.querySelectorAll(...params);
       return node.dragon.virtualNode.querySelectorAll(...params);
     },
-    useContext: () => {
-      console.log("useContext");
-      return [null, () => {}];
+    useContext: (namespace, defaultValue) => {
+      console.log("useContext", node.id, namespace);
+      if (Object.keys(dragon.context.shared).indexOf(namespace) < 0) {
+        dragon.context.shared[namespace] = {
+          value: defaultValue,
+          nodes: {}
+        };
+      }
+      dragon.context.shared[namespace].nodes[node.id] = node;
+      return [
+        dragon.context.shared[namespace].value,
+        (value) => {
+          console.log(
+            "useContext update",
+            node.id,
+            namespace,
+            dragon.context.shared[namespace].value,
+            value
+          );
+          dragon.context.shared[namespace].value = value;
+          for (let nodeId in dragon.context.shared[namespace].nodes) {
+            dragon.context.shared[namespace].nodes[nodeId].dragon.render();
+          }
+        }
+      ];
     },
     useState: new Proxy(
       {},
       {
         get(_, id) {
           return (defaultValue) => {
-            console.log("useState", id);
+            console.log("useState", node.id, id);
             if (Object.keys(node.dragon.state).indexOf(id) < 0) {
               node.dragon.state[id] = defaultValue;
             }
@@ -235,7 +257,7 @@ dragon.loadScripts = (node, virtualNode) => {
 
           // render
           on("#render", async () => {
-            console.log("#render");
+            console.log("#render", node.id);
 
             // hooks
             ${hooks}

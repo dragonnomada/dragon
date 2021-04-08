@@ -6,16 +6,16 @@
     button
   </button>
 
-  <script>
-    const [counter, setCounter] = useContext("@counter");
+  <script hook>
+    const [counter, setCounter] = useContext("@counter", 0);
+  </script>
 
-    select("button").textContent = `button (${counter || 0})`;
+  <script render>
+    select("button").textContent = `button (${counter})`;
+  </script>
 
-    on("add", () => {
-      console.log("Hola mundo");
-      setCounter(counter + 1);
-    });
-
-    mount();
+  <script :add>
+    console.log("Hola mundo");
+    setCounter(counter + 1);
   </script>
 </template>
