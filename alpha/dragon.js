@@ -16,6 +16,9 @@ function dragon(root = document) {
 
 dragon.inspectAttributes = (node) => {
   for (let attributeName of node.getAttributeNames()) {
+    if (attributeName === "namespace") {
+      node.namespace = node.getAttribute("namespace");
+    }
     if (/^@/.test(attributeName)) {
       const options = node.getAttribute(attributeName);
       const componentName = attributeName.slice(1);
