@@ -483,7 +483,7 @@ dragon.context = {
 };
 
 (async () => {
-  console.log(`dragon.js v0.21.4.8.103 - Dragon Nomada (Alan Badillo Salas)`);
+  console.log(`dragon.js v0.21.4.8.1124 - Dragon Nomada (Alan Badillo Salas)`);
 
   for (let link of [...document.querySelectorAll(`link[rel="import"]`)]) {
     const response = await fetch(link.href);
