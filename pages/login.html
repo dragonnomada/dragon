@@ -1,0 +1,78 @@
+<template login>
+  <div
+    class="flex flex-col items-center justify-center bg-gray-800 bg-opacity-50 p-6 fixed top-0 left-0 w-screen h-screen"
+  >
+    <div class="bg-white p-6 rounded-lg shadow">
+      <div class="flex flex-col">
+        <span id-user-label>Usuario</span>
+        <input id-user-input placeholder="Usuario" :change="changeUser" />
+      </div>
+      <div class="flex flex-col">
+        <span id-password-label>Contraseña</span>
+        <input
+          id-password-input
+          type="password"
+          placeholder="Contraseña"
+          :change="changePassword"
+        />
+      </div>
+      <button id-login-button :click="clickLogin">Iniciar Sesión</button>
+    </div>
+  </div>
+
+  <script ref>
+    const userInput = bind("[id-user-input]");
+    const userLabel = bind("[id-user-label]");
+    const passwordInput = bind("[id-password-input]");
+    const passwordLabel = bind("[id-password-label]");
+    const loginButton = bind("[id-login-button]");
+  </script>
+
+  <script hook>
+    const [isLogin, setIsLogin] = useContext("@login");
+
+    const [userText, setUserText] = useState("");
+    const [passwordText, setPasswordText] = useState("");
+  </script>
+
+  <script render>
+    userLabel.textContent = `Usuario (${userText || "Sin usuario"})`;
+    passwordLabel.textContent = `Usuario (${passwordText || "Sin contraseña"})`;
+  </script>
+
+  <script :changeUser>
+    setUserText(event.target.value);
+  </script>
+
+  <script :changePassword>
+    setPasswordText(event.target.value);
+  </script>
+
+  <script :clickLogin>
+    fire("@login");
+  </script>
+
+  <script @login>
+    fire("@lock");
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    if (userText && passwordText) {
+      setIsLogin(true);
+    }
+
+    fire("@unlock");
+  </script>
+
+  <script @lock>
+    userInput.disabled = true;
+    passwordInput.disabled = true;
+    loginButton.disabled = true;
+  </script>
+
+  <script @unlock>
+    userInput.disabled = false;
+    passwordInput.disabled = false;
+    loginButton.disabled = false;
+  </script>
+</template>

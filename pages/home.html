@@ -1,0 +1,27 @@
+<template home>
+  <h1>Home</h1>
+
+  <span id-logout-span class="text-blue-500 cursor-pointer" :click="logout"
+    >Cerrar Sesión</span
+  >
+
+  <div id-login @login></div>
+
+  <script ref>
+    const logoutSpan = bind("[id-logout-span]");
+    const login = bind("[id-login]");
+  </script>
+
+  <script hook>
+    const [isLogin, setIsLogin] = useContext("@login");
+  </script>
+
+  <script render>
+    logoutSpan.textContent = isLogin ? "Cerrar Sesión" : "Iniciar Sesión";
+    login.hidden = isLogin;
+  </script>
+
+  <script :logout>
+    setIsLogin(false);
+  </script>
+</template>
