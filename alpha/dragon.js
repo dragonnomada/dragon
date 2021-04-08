@@ -123,6 +123,11 @@ dragon.initialize = (node) => {
             } else {
               current = node.dragon.virtualNode.querySelector(...params);
             }
+            if (typeof current[name] === "function") {
+              return (...params) => {
+                current[name](...params);
+              };
+            }
             return current[name];
           },
           set(target, name, value) {
