@@ -94,6 +94,33 @@ dragon.initialize = (node) => {
     loadFallback: () => {
       node.innerHTML = node.dragon.fallback;
     },
+    subscriber: (namespace) => {
+      return {
+        off: (channel) => {
+          const subscribers = (dragon.subscribers[namespace] =
+            dragon.subscribers[namespace] || {});
+          const subscriber = (subscribers[node.id] =
+            subscribers[node.id] || {});
+          delete subscriber[channel];
+        },
+        on: (channel, handler) => {
+          const subscribers = (dragon.subscribers[namespace] =
+            dragon.subscribers[namespace] || {});
+          const subscriber = (subscribers[node.id] =
+            subscribers[node.id] || {});
+          subscriber[channel] = handler;
+        },
+        emit: (channel, ...params) => {
+          const subscribers = (dragon.subscribers[namespace] =
+            dragon.subscribers[namespace] || {});
+          for (let id in subscribers) {
+            const subscriber = subscribers[id];
+            const handler = subscriber[channel] || (() => {});
+            handler(...params);
+          }
+        }
+      };
+    },
     listen: (channel, handler) => {
       dragon.listeners[node.id] = dragon.listeners[node.id] || {};
       dragon.listeners[node.id][channel] = handler;
@@ -449,6 +476,7 @@ dragon.mount = (node) => {
 };
 
 dragon.context = {
+  subscribers: {},
   listeners: {},
   shared: {},
   nodes: {}
