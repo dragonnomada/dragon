@@ -24,9 +24,7 @@ dragon.inspectAttributes = (node) => {
 
       dragon.initialize(node);
 
-      if (componentName === "namespace") {
-        continue;
-      }
+      if (componentName === "namespace") continue;
 
       dragon.createFromTemplate(node, componentName, options);
 
