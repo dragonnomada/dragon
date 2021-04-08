@@ -124,7 +124,7 @@ dragon.initialize = (node) => {
               current = node.dragon.virtualNode.querySelector(...params);
             }
             if (typeof current[name] === "function") {
-              console.log("invoke", node.id, name, current[name]);
+              // console.log("invoke", node.id, name, current[name]);
               return (...params) => {
                 current[name](...params);
               };
@@ -442,6 +442,8 @@ dragon.context = {
 };
 
 (async () => {
+  console.log(`dragon.js v0.21.4.8.54 - Dragon Nomada (Alan Badillo Salas)`);
+
   for (let link of [...document.querySelectorAll(`link[rel="import"]`)]) {
     const response = await fetch(link.href);
 
