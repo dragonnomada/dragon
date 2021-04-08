@@ -94,6 +94,17 @@ dragon.initialize = (node) => {
     loadFallback: () => {
       node.innerHTML = node.dragon.fallback;
     },
+    listen: (channel, handler) => {
+      dragon.listeners[node.id] = dragon.listeners[node.id] || {};
+      dragon.listeners[node.id][channel] = handler;
+    },
+    dispatch: (channel, ...params) => {
+      for (let id in dragon.listeners) {
+        const listener = dragon.listeners[id] || {};
+        const handler = listener[channel] || (() => {});
+        handler(...params);
+      }
+    },
     on: (channel, handler, ...params) => {
       if (/^:/.test(channel)) {
         const channelName = channel.slice(1);
@@ -438,6 +449,7 @@ dragon.mount = (node) => {
 };
 
 dragon.context = {
+  listeners: {},
   shared: {},
   nodes: {}
 };
