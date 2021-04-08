@@ -124,6 +124,7 @@ dragon.initialize = (node) => {
               current = node.dragon.virtualNode.querySelector(...params);
             }
             if (typeof current[name] === "function") {
+              console.log("invoke", node.id, name, current[name]);
               return (...params) => {
                 current[name](...params);
               };
