@@ -27,8 +27,6 @@ dragon.inspectAttributes = (node) => {
       if (componentName === "namespace") continue;
 
       dragon.createFromTemplate(node, componentName, options);
-
-      dragon.mount(node);
     }
   }
 };
@@ -212,6 +210,11 @@ dragon.createFromTemplate = (node, componentName, options) => {
 
   console.log("@dragon: Template loaded", template);
 
+  if (!template) {
+    console.warn("@dragon invalid template", componentName);
+    return;
+  }
+
   const virtualNode = document.importNode(template.content, true);
 
   dragon.loadScripts(node, virtualNode);
@@ -239,6 +242,8 @@ dragon.createFromTemplate = (node, componentName, options) => {
   node.dragon.virtualNode = virtualNode;
   node.dragon.mountChildren = mountChildren;
   node.dragon.unmountChildren = unmountChildren;
+
+  dragon.mount(node);
 };
 
 dragon.loadScripts = (node, virtualNode) => {
