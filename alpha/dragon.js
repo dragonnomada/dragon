@@ -14,9 +14,55 @@ function dragon(root = document) {
   }
 }
 
+dragon.inspectAttributes = (node) => {
+  for (let attributeName of node.getAttributeNames()) {
+    if (/^@/.test(attributeName)) {
+      const options = node.getAttribute(attributeName);
+      const componentName = attributeName.slice(1);
+
+      dragon.setNamespace(node);
+
+      dragon.initialize(node);
+
+      dragon.createFromTemplate(node, componentName, options);
+
+      dragon.mount(node);
+    }
+  }
+};
+
+dragon.setNamespace = (node) => {
+  let namespace = node.getAttribute("namespace") || null;
+
+  let rootNamespace = null;
+
+  let root = node;
+
+  while (root && root !== document && !rootNamespace) {
+    // console.log("root", root.id, root.namespace);
+    if (root.namespace) {
+      rootNamespace = root.namespace;
+      break;
+    }
+    if (!root.parentElement) break;
+    root = root.parentElement;
+  }
+
+  if (namespace) {
+    namespace = namespace.replace(/{namespace}/g, rootNamespace || "document");
+  } else {
+    namespace = rootNamespace || "document";
+  }
+
+  node.namespace = namespace;
+
+  console.log("namespace", node.namespace);
+};
+
 dragon.initialize = (node) => {
   node.dragon = {
     id: node.id || `node-${Math.random().toString(32).slice(2)}`,
+    namespace: node.namespace,
     mounted: null,
     scripts: {
       binds: [],
@@ -96,6 +142,8 @@ dragon.initialize = (node) => {
       return node.dragon.virtualNode.querySelectorAll(...params);
     },
     useContext: (namespace, defaultValue) => {
+      namespace = `${node.namespace}/${namespace}`;
+
       console.log("useContext", node.id, namespace);
       if (Object.keys(dragon.context.shared).indexOf(namespace) < 0) {
         dragon.context.shared[namespace] = {
@@ -153,21 +201,6 @@ dragon.initialize = (node) => {
   node.id = node.dragon.id;
 
   dragon.context.nodes[node.id] = node;
-};
-
-dragon.inspectAttributes = (node) => {
-  for (let attributeName of node.getAttributeNames()) {
-    if (/^@/.test(attributeName)) {
-      const options = node.getAttribute(attributeName);
-      const componentName = attributeName.slice(1);
-
-      dragon.initialize(node);
-
-      dragon.createFromTemplate(node, componentName, options);
-
-      dragon.mount(node);
-    }
-  }
 };
 
 dragon.createFromTemplate = (node, componentName, options) => {
@@ -303,7 +336,7 @@ dragon.loadScripts = (node, virtualNode) => {
   node.dragon.makeScript = makeScript;
   node.dragon.script = makeScript();
 
-  console.log(node.dragon.script);
+  // console.log(node.dragon.script);
 };
 
 dragon.registerEvents = (node) => {
