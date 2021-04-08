@@ -20,6 +20,8 @@ dragon.inspectAttributes = (node) => {
       const options = node.getAttribute(attributeName);
       const componentName = attributeName.slice(1);
 
+      node.componentName = componentName;
+
       dragon.setNamespace(node);
 
       dragon.initialize(node);
@@ -142,6 +144,9 @@ dragon.initialize = (node) => {
     selectAll: (...params) => {
       if (node.dragon.mounted) return node.querySelectorAll(...params);
       return node.dragon.virtualNode.querySelectorAll(...params);
+    },
+    fire: (channel, ...params) => {
+      node.dragon.when[channel.replace(/^@/g, "")](...params);
     },
     useContext: (namespace, defaultValue) => {
       namespace = `${node.namespace}/${namespace}`;
@@ -352,7 +357,9 @@ dragon.registerEvents = (node) => {
   for (let element of [...node.querySelectorAll("*")]) {
     for (let elementAttributeName of element.getAttributeNames()) {
       if (/^:/.test(elementAttributeName)) {
-        const channel = element.getAttribute(elementAttributeName);
+        const channel = element
+          .getAttribute(elementAttributeName)
+          .toLowerCase();
         const eventName = elementAttributeName.slice(1);
 
         dragon.listenEvent(node, element, eventName, channel);
