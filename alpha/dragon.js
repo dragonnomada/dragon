@@ -27,8 +27,10 @@ dragon.initialize = (node) => {
       },
       on: {}
     },
+    state: {},
     listeners: {},
     subscribers: {},
+    when: {},
     fallback: node.innerHTML,
     clear: () => {
       // const range = document.createRange();
@@ -51,6 +53,11 @@ dragon.initialize = (node) => {
       if (/^#/.test(channel)) {
         const channelName = channel.slice(1);
         node.dragon[channelName] = handler;
+        return;
+      }
+      if (/^@/.test(channel)) {
+        const channelName = channel.slice(1);
+        node.dragon.when[channelName] = handler;
         return;
       }
       console.log("on", channel, params);
@@ -92,10 +99,33 @@ dragon.initialize = (node) => {
       console.log("useContext");
       return [null, () => {}];
     },
-    useState: () => {
-      console.log("useState");
-      return [null, () => {}];
-    }
+    useState: new Proxy(
+      {},
+      {
+        get(_, id) {
+          return (defaultValue) => {
+            console.log("useState", id);
+            if (Object.keys(node.dragon.state).indexOf(id) < 0) {
+              node.dragon.state[id] = defaultValue;
+            }
+            return [
+              node.dragon.state[id],
+              (value) => {
+                console.log(
+                  "useState update",
+                  node.id,
+                  id,
+                  node.dragon.state[id],
+                  value
+                );
+                node.dragon.state[id] = value;
+                node.dragon.render();
+              }
+            ];
+          };
+        }
+      }
+    )
   };
 
   node.id = node.dragon.id;
@@ -186,7 +216,15 @@ dragon.loadScripts = (node, virtualNode) => {
     }
   }
 
+  node.dragon.stateCount = 0;
+
   const makeScript = () => {
+    const hooks = node.dragon.scripts.hooks
+      .map((hook) =>
+        hook.replace(/useState/g, () => `useState[${node.dragon.stateCount++}]`)
+      )
+      .join("\n");
+
     return `
       (() => {
         const node = dragon.context.nodes["${node.id}"];
@@ -195,11 +233,13 @@ dragon.loadScripts = (node, virtualNode) => {
           // binds
           ${node.dragon.scripts.binds.join("\n")}
 
-          // hooks
-          ${node.dragon.scripts.hooks.join("\n")}
-
           // render
           on("#render", async () => {
+            console.log("#render");
+
+            // hooks
+            ${hooks}
+
             ${node.dragon.scripts.render}
           });
 
@@ -210,6 +250,9 @@ dragon.loadScripts = (node, virtualNode) => {
                 eventName,
                 code
               ]) => `on("@${eventName}", async (event, ...params) => {
+                // hooks
+                ${hooks}
+                
                 ${code}
               });`
             )
@@ -222,6 +265,9 @@ dragon.loadScripts = (node, virtualNode) => {
                 eventName,
                 code
               ]) => `on(":${eventName}", async (event, ...params) => {
+                // hooks
+                ${hooks}
+                
                 ${code}
               });`
             )
@@ -307,8 +353,8 @@ dragon.mount = (node) => {
     node.dragon.render();
   }
 
-  if (node.dragon.subscribers[":mounted"]) {
-    node.dragon.subscribers[":mounted"]();
+  if (node.dragon.when["mounted"]) {
+    node.dragon.when["mounted"]();
     dragon(node);
   }
 };
