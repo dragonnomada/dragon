@@ -16,9 +16,6 @@ function dragon(root = document) {
 
 dragon.inspectAttributes = (node) => {
   for (let attributeName of node.getAttributeNames()) {
-    if (attributeName === "namespace") {
-      node.namespace = node.getAttribute("namespace");
-    }
     if (/^@/.test(attributeName)) {
       const options = node.getAttribute(attributeName);
       const componentName = attributeName.slice(1);
@@ -26,6 +23,10 @@ dragon.inspectAttributes = (node) => {
       dragon.setNamespace(node);
 
       dragon.initialize(node);
+
+      if (componentName === "namespace") {
+        continue;
+      }
 
       dragon.createFromTemplate(node, componentName, options);
 
@@ -51,10 +52,12 @@ dragon.setNamespace = (node) => {
     root = root.parentElement;
   }
 
+  rootNamespace = rootNamespace || "document";
+
   if (namespace) {
-    namespace = namespace.replace(/{namespace}/g, rootNamespace || "document");
+    namespace = namespace.replace(/{namespace}/g, rootNamespace);
   } else {
-    namespace = rootNamespace || "document";
+    namespace = rootNamespace;
   }
 
   node.namespace = namespace;
@@ -284,56 +287,56 @@ dragon.loadScripts = (node, virtualNode) => {
       .join("\n");
 
     return `
-        (() => {
-          const node = dragon.context.nodes["${node.id}"];
-  
-          (async ({ ${Object.keys(node.dragon)}, ...lib }) => {
-            // binds
-            ${node.dragon.scripts.binds.join("\n")}
-  
-            // render
-            on("#render", async () => {
-              console.log("#render", node.id);
-  
-              // hooks
-              ${hooks}
-  
-              ${node.dragon.scripts.render}
-            });
-  
-            // when
-            ${Object.entries(node.dragon.scripts.when)
-              .map(
-                ([
-                  eventName,
-                  code
-                ]) => `on("@${eventName}", async (event, ...params) => {
-                  // hooks
-                  ${hooks}
-                  
-                  ${code}
-                });`
-              )
-              .join("\n")}
-            
-            // on
-            ${Object.entries(node.dragon.scripts.on)
-              .map(
-                ([
-                  eventName,
-                  code
-                ]) => `on(":${eventName}", async (event, ...params) => {
-                  // hooks
-                  ${hooks}
-                  
-                  ${code}
-                });`
-              )
-              .join("\n")}
-  
-          })(node.dragon);
-        })();
-      `;
+      (() => {
+        const node = dragon.context.nodes["${node.id}"];
+
+        (async ({ ${Object.keys(node.dragon)}, ...lib }) => {
+          // binds
+          ${node.dragon.scripts.binds.join("\n")}
+
+          // render
+          on("#render", async () => {
+            console.log("#render", node.id);
+
+            // hooks
+            ${hooks}
+
+            ${node.dragon.scripts.render}
+          });
+
+          // when
+          ${Object.entries(node.dragon.scripts.when)
+            .map(
+              ([
+                eventName,
+                code
+              ]) => `on("@${eventName}", async (event, ...params) => {
+                // hooks
+                ${hooks}
+                
+                ${code}
+              });`
+            )
+            .join("\n")}
+          
+          // on
+          ${Object.entries(node.dragon.scripts.on)
+            .map(
+              ([
+                eventName,
+                code
+              ]) => `on(":${eventName}", async (event, ...params) => {
+                // hooks
+                ${hooks}
+                
+                ${code}
+              });`
+            )
+            .join("\n")}
+
+        })(node.dragon);
+      })();
+    `;
   };
 
   node.dragon.makeScript = makeScript;

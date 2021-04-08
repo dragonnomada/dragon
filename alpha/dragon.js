@@ -16,9 +16,6 @@ function dragon(root = document) {
 
 dragon.inspectAttributes = (node) => {
   for (let attributeName of node.getAttributeNames()) {
-    if (attributeName === "namespace") {
-      node.namespace = node.getAttribute("namespace");
-    }
     if (/^@/.test(attributeName)) {
       const options = node.getAttribute(attributeName);
       const componentName = attributeName.slice(1);
@@ -26,6 +23,10 @@ dragon.inspectAttributes = (node) => {
       dragon.setNamespace(node);
 
       dragon.initialize(node);
+
+      if (componentName === "namespace") {
+        continue;
+      }
 
       dragon.createFromTemplate(node, componentName, options);
 
@@ -51,10 +52,12 @@ dragon.setNamespace = (node) => {
     root = root.parentElement;
   }
 
+  rootNamespace = rootNamespace || "document";
+
   if (namespace) {
-    namespace = namespace.replace(/{namespace}/g, rootNamespace || "document");
+    namespace = namespace.replace(/{namespace}/g, rootNamespace);
   } else {
-    namespace = rootNamespace || "document";
+    namespace = rootNamespace;
   }
 
   node.namespace = namespace;
