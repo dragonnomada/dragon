@@ -136,7 +136,7 @@ dragon.initialize = (node) => {
     on: (channel, handler, ...params) => {
       if (/^:/.test(channel)) {
         const channelName = channel.slice(1);
-        node.dragon.context.subscribers[channelName] = handler;
+        node.dragon.subscribers[channelName] = handler;
         return;
       }
       if (/^#/.test(channel)) {
@@ -419,25 +419,24 @@ dragon.listenEvent = (node, element, eventName, channel) => {
     if (!node.dragon.mounted) return;
     console.log("event", node.id, eventName, channel);
 
-    const subscriber = node.dragon.context.subscribers[channel];
+    const subscriber = node.dragon.subscribers[channel];
 
     if (typeof subscriber === "function") {
       subscriber(...params);
     }
   };
-  // if (node.dragon.context.listeners[channel]) {
-  //   const { element, eventName, handler } = node.dragon.context.listeners[channel];
+  // if (node.dragon.listeners[channel]) {
+  //   const { element, eventName, handler } = node.dragon.listeners[channel];
   //   element.removeEventListener(eventName, handler);
   //   console.log("remove listener", node.id, eventName, channel);
   // }
-  // node.dragon.context.listeners[channel] = {
+  // node.dragon.listeners[channel] = {
   //   eventName,
   //   element,
   //   handler
   // };
-  node.dragon.context.listeners[channel] =
-    node.dragon.context.listeners[channel] || [];
-  node.dragon.context.listeners[channel].push({
+  node.dragon.listeners[channel] = node.dragon.listeners[channel] || [];
+  node.dragon.listeners[channel].push({
     eventName,
     element,
     handler
@@ -485,7 +484,7 @@ dragon.context = {
 };
 
 (async () => {
-  console.log(`dragon.js v0.21.4.8.1208 - Dragon Nomada (Alan Badillo Salas)`);
+  console.log(`dragon.js v0.21.4.8.1211 - Dragon Nomada (Alan Badillo Salas)`);
 
   for (let link of [...document.querySelectorAll(`link[rel="import"]`)]) {
     const response = await fetch(link.href);
