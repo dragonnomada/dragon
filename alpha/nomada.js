@@ -145,7 +145,7 @@ nomada.handle = (nomadaId, handlerId) => (event, target) => {
 };
 
 nomada.main = async () => {
-  console.log(`nomada.js v0.21.4.8.2359 - By Dragon Nomada`);
+  console.log(`nomada.js v0.21.4.9.49 - By Dragon Nomada`);
 
   const mainTemplate = document.querySelector("template[artifact='main']");
 
