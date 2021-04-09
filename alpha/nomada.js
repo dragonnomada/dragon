@@ -1,3 +1,11 @@
+/**
+ * nomada.js
+ * @dragonnomada
+ * Alan Badillo Salas - dragonnomada123@gmail.com
+ * Abril 2021 version alpha
+ * Nano-Librería de construcción de componentes html/css/javascript
+ */
+
 async function nomada(template) {
   if (!(template instanceof HTMLElement) || template.tagName !== "TEMPLATE") {
     console.warn(
