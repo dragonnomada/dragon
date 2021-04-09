@@ -345,18 +345,27 @@
     <template artifact="main">
       <script>
         const button = useArtifact("button");
+        const button2 = useArtifact("button");
 
         render`
 <div class="p-8">
     <h1>My App</h1>
     
     <div>
-        ${button({
-          text: "Hola mundo",
-          onClick: () => {
-            alert("Hello!");
-          }
-        })}
+        ${[
+          button({
+            text: "Hola mundo",
+            onClick: () => {
+              alert("Hello!");
+            }
+          }),
+          button2({
+            text: "Hola mundo2",
+            onClick: () => {
+              alert("Hello!");
+            }
+          })
+        ]}
     </div>
 </div>
 `;

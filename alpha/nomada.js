@@ -67,6 +67,14 @@ async function nomada(template) {
                     // console.log(i, replace);
                     if (replace === undefined || replace === null) {
                         replace = "";
+                    } else if (replace instanceof Array) {
+                        let items = "";
+                        for (let item of replace) {
+                            const id = Math.random().toString(32).slice(2);
+                            children[id] = item;
+                            items += \`<div data-ref="\${id}"></div>\n\`;    
+                        }
+                        replace = items;
                     } else if (replace instanceof HTMLElement) {
                         const id = Math.random().toString(32).slice(2);
                         children[id] = replace;
