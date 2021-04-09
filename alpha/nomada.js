@@ -98,7 +98,7 @@ async function nomada(template) {
                 const html = render;
 
                 ${script.textContent.replace(
-                  /use[A-Za-z]+/g,
+                  /use[A-Z][A-Za-z]+/g,
                   (hook) => `${hook}(node, ${hookCount[hook]++})`
                 )}
             };
