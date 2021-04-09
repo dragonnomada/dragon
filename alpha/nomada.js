@@ -95,6 +95,8 @@ async function nomada(template) {
             };
 
             node.nomada.render = () => {
+                const html = render;
+
                 ${script.textContent.replace(
                   /use[A-Za-z]+/g,
                   (hook) => `${hook}(node, ${hookCount[hook]++})`
@@ -143,7 +145,7 @@ nomada.handle = (nomadaId, handlerId) => (event, target) => {
 };
 
 nomada.main = async () => {
-  console.log(`nomada.js v0.21.4.8.1923 - By Dragon Nomada`);
+  console.log(`nomada.js v0.21.4.8.2359 - By Dragon Nomada`);
 
   const mainTemplate = document.querySelector("template[artifact='main']");
 

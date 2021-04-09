@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nomada UI</title>
+
+    <link
+      href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+    <!-- @head -->
+  </head>
+
+  <body>
+    <!-- #open hook/useArtifact.js -->
+    <script>
+      function useArtifact(node, id) {
+        return (name, namespace = "document") => {
+          node.nomada.hooks.useArtifact = node.nomada.hooks.useArtifact || {};
+
+          const context = (node.nomada.hooks.useArtifact[id] = node.nomada.hooks
+            .useArtifact[id] || {
+            namespaces: {}
+          });
+
+          const containers = (context.namespaces[namespace] =
+            context.namespaces[namespace] || {});
+
+          const container = (containers[name] = containers[name] || {
+            initialized: false,
+            template: null,
+            artifact: null
+          });
+
+          if (!container.initialized) {
+            container.initialized = true;
+
+            const fallback = document.createElement("div");
+
+            fallback.innerHTML = `
+                <span>cargando...</span>
+            `;
+
+            container.artifact = fallback;
+
+            const template = document.querySelector(
+              `template[artifact='${name}']`
+            );
+
+            if (template) {
+              container.template = template;
+
+              (async () => {
+                const artifact = await nomada(template);
+
+                container.artifact = artifact;
+
+                // await artifact.nomada.mount(node);
+
+                node.nomada.render();
+
+                if (typeof container.artifact.nomada.emit === "function") {
+                  container.artifact.nomada.emit("start");
+                }
+              })();
+            }
+          } else {
+            console.warn("DETENIENDO");
+            if (container.artifact.nomada) {
+              if (typeof container.artifact.nomada.emit === "function") {
+                container.artifact.nomada.emit("stop");
+              }
+            }
+          }
+
+          return (props) => {
+            if (container.artifact.nomada) {
+              container.artifact.nomada.props = props;
+              if (typeof container.artifact.nomada.emit === "function") {
+                container.artifact.nomada.emit("start");
+              }
+              // container.artifact.nomada.render();
+            }
+            return container.artifact;
+          };
+        };
+      }
+    </script>
+    <!-- #close hook/useArtifact.js -->
+
+    <!-- #open hook/useEffect.js -->
+    <script>
+      function useEffect(node, id) {
+        return async (handler, dependencies) => {
+          node.nomada.hooks.useEffect = node.nomada.hooks.useEffect || {};
+
+          node.nomada.hooks.useEffect[id] = node.nomada.hooks.useEffect[id] || {
+            clear: () => {},
+            initialized: false,
+            dependencies: [...dependencies]
+          };
+
+          let update = !node.nomada.hooks.useEffect[id].initialized;
+
+          for (let i = 0; i < dependencies.length; i++) {
+            if (
+              JSON.stringify(
+                node.nomada.hooks.useEffect[id].dependencies[i]
+              ) !== JSON.stringify(dependencies[i])
+            ) {
+              node.nomada.hooks.useEffect[id].dependencies[i] = dependencies[i];
+              update = true;
+            }
+          }
+
+          if (update) {
+            console.log(
+              "useEffect",
+              node.nomada.id,
+              id,
+              update,
+              node.nomada.hooks.useEffect[id]
+            );
+            await node.nomada.hooks.useEffect[id].clear();
+
+            const clear = await handler();
+
+            if (typeof clear === "function") {
+              const lastClear = node.nomada.hooks.useEffect[id].clear;
+              node.nomada.hooks.useEffect[id].clear = async () => {
+                await lastClear();
+                await clear();
+
+                node.nomada.hooks.useEffect[id].clear = () => {};
+              };
+            }
+          }
+
+          node.nomada.hooks.useEffect[id].initialized = true;
+        };
+      }
+    </script>
+    <!-- #close hook/useEffect.js -->
+
+    <!-- #open hook/useEvent.js -->
+    <script>
+      function useEvent(node, id) {
+        return (channel, handler) => {
+          node.nomada.listeners = node.nomada.listeners || {};
+
+          const on = (node.nomada.on = (channel, listener) => {
+            node.nomada.listeners[channel] = listener;
+          });
+
+          const emit = (node.nomada.emit = (channel, ...params) => {
+            const listener = node.nomada.listeners[channel] || (() => {});
+            listener(...params);
+          });
+
+          on(channel, handler);
+
+          return (...params) => emit(channel, ...params);
+        };
+      }
+    </script>
+    <!-- #close hook/useEvent.js -->
+
+    <!-- #open hook/useProps.js -->
+    <script>
+      function useProps(node, id) {
+        return (defaultProps = {}) => {
+          return {
+            ...(defaultProps || {}),
+            ...(node.nomada.props || {})
+          };
+        };
+      }
+    </script>
+    <!-- #close hook/useProps.js -->
+
+    <!-- #open hook/useState.js -->
+    <script>
+      function useState(node, id) {
+        return (defaultValue) => {
+          node.nomada.hooks.useState = node.nomada.hooks.useState || {};
+
+          node.nomada.hooks.useState[id] = node.nomada.hooks.useState[id] || {
+            value: defaultValue,
+            setValue: (newValue) => {
+              node.nomada.hooks.useState[id].value = newValue;
+              if (typeof node.nomada.render === "function") {
+                node.nomada.render();
+              }
+            }
+          };
+
+          return [
+            node.nomada.hooks.useState[id].value,
+            node.nomada.hooks.useState[id].setValue
+          ];
+        };
+      }
+    </script>
+    <!-- #close hook/useState.js -->
+
+    <!-- #open artifact/button.js -->
+    <template artifact="button">
+      <script>
+        const { text, onClick } = useProps({
+          text: "button",
+          onClick: () => {}
+        });
+
+        render`
+<button 
+    class="rounded bg-blue-500 hover:bg-blue-700 text-white py-1 px-2" 
+    onclick="${onClick}"
+>
+    ${text}
+</button>
+`;
+      </script>
+    </template>
+    <!-- #close artifact/button.js -->
+
+    <!-- #open artifact/counter.js -->
+    <template artifact="counter">
+      <script>
+        const { x } = useProps({
+          x: -10
+        });
+
+        const [count, setCount] = useState(x);
+        const [completed, setCompleted] = useState(false);
+
+        const [started, setStarted] = useState(true);
+
+        useEvent("stop", () => {
+          console.warn("STOP");
+          setStarted(false);
+        });
+
+        useEvent("start", () => {
+          console.warn("START");
+          setStarted(true);
+        });
+
+        // useEffect(() => {
+        //     setCount(x);
+
+        //     if (x < 10) {
+        //         setCompleted(false);
+        //     }
+        // }, [started, x]);
+
+        useEffect(() => {
+          if (!started) return;
+
+          let id = null;
+
+          if (count < 10 && !completed) {
+            id = setTimeout(() => {
+              console.log("INCREMENTANDO", count, count + 1);
+              setCount(count + 1);
+            }, 1000);
+          }
+
+          return () => {
+            console.log("LIMPIANDO", node.id);
+            if (id) {
+              clearTimeout(id);
+            }
+          };
+        }, [started, count, completed]);
+
+        useEffect(() => {
+          if (count >= 10) {
+            setCompleted(true);
+            // setCount(10);
+          }
+        }, [started, count]);
+
+        if (completed) {
+          render`
+        <div>
+            <span>Completado ${count}</span>
+            <button onclick="${() => {
+              setCount(0);
+              setCompleted(false);
+            }}">reiniciar</button>
+        </div>
+    `;
+          return;
+        }
+
+        render`
+    <div>
+        <span>Count: ${count}</span>
+        <button onclick="${() => setCount(count + 1)}">Incrementar</button>
+    </div>
+`;
+      </script>
+    </template>
+    <!-- #close artifact/counter.js -->
+
+    <!-- #open artifact/main-v1.js -->
+    <template artifact="main-v1">
+      <script>
+        const counter = useArtifact("counter");
+
+        const [val, setVal] = useState(-1);
+
+        console.log("main/counter", counter);
+
+        if (val < 0) {
+          render`
+        <div class="p-8">
+            <h1>Main (${val})</h1>
+            <button onclick="${() => setVal(val + 1)}">inc</button>
+            <button onclick="${() => setVal(val - 1)}">dec</button>
+        </div>
+    `;
+          return;
+        }
+
+        render`
+<div class="p-8">
+    <h1>Main (${val})</h1>
+    <button onclick="${() => setVal(val + 1)}">inc</button>
+    <button onclick="${() => setVal(val - 1)}">dec</button>
+    <div>
+        ${counter({ x: val })}
+    </div>
+</div>
+`;
+      </script>
+    </template>
+    <!-- #close artifact/main-v1.js -->
+
+    <!-- #open artifact/main.js -->
+    <template artifact="main">
+      <script>
+        const button = useArtifact("button");
+
+        render`
+<div class="p-8">
+    <h1>My App</h1>
+    
+    <div>
+        ${button({
+          text: "Hola mundo",
+          onClick: () => {
+            alert("Hello!");
+          }
+        })}
+    </div>
+</div>
+`;
+      </script>
+    </template>
+    <!-- #close artifact/main.js -->
+
+    <script src="../alpha/nomada.js"></script>
+
+    <script>
+      const socket = io();
+
+      socket.on("disconnect", () => {
+        console.log("DESCONECTADO");
+        window.location.reload();
+      });
+    </script>
+
+    <!-- #open hooks index -->
+    <script>
+      nomada.hooks = [
+        "useArtifact",
+        "useEffect",
+        "useEvent",
+        "useProps",
+        "useState"
+      ];
+    </script>
+    <!-- #close hooks index -->
+
+    <script>
+      nomada.main();
+    </script>
+  </body>
+</html>
